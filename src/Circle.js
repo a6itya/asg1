@@ -1,4 +1,5 @@
 class Circle {
+
     constructor() {
         this.type = "circle";
         this.position = [0.0, 0.0, 0.0];
@@ -8,6 +9,7 @@ class Circle {
     }
 
     render() {
+
         var xy = this.position;
         var rgba = this.color;
         var size = this.size;
@@ -18,7 +20,9 @@ class Circle {
 
         var d = this.size/200.0; 
         let angleStep = 360/this.segments;
+
         for (var angle = 0; angle < 360; angle = angle + angleStep) {
+
             let centerPt = [xy[0], xy[1]];
             let angle1 = angle;
             let angle2 = angle + angleStep;
