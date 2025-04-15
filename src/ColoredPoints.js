@@ -1,4 +1,3 @@
-// ColoredPoint.js (c) 2012 matsuda
 // Vertex shader program
 var VSHADER_SOURCE = `
   attribute vec4 a_Position;
@@ -19,6 +18,7 @@ var FSHADER_SOURCE = `
 
 const POINT = 0;
 const TRIANGLE = 1;
+const CIRCLE = 2;
 
 // Global Variables
 let canvas;
@@ -29,7 +29,8 @@ let u_Size;
 let g_selectedColor=[1.0, 1.0, 1.0, 1.0]; //ui
 let g_selectedSize = 5; //ui
 let g_selectedType = POINT;
-
+let g_segment = 10;
+let randomMode = false;
 
 
 function setupWebGL(){
@@ -78,12 +79,16 @@ function connectVariablesToGLSL(){
 function addActionsForHtmlUi(){
 
   //buttons
-  document.getElementById('green').onclick = function() {g_selectedColor = [0.0, 1.0, 0.0, 0.0]};
-  document.getElementById('red').onclick = function() {g_selectedColor = [1.0, 1.0, 0.0, 0.0]};
   document.getElementById('clearButton').onclick = function() {g_shapesList=[]; renderAllShapes(); };
 
   document.getElementById('pointButton').onclick = function() {g_selectedType = POINT };
   document.getElementById('triButton').onclick = function() {g_selectedType = TRIANGLE };
+  document.getElementById('circleButton').onclick = function() {g_selectedType=CIRCLE};
+  document.getElementById('randomButton').onclick = function() {
+    randomMode = !randomMode;
+    this.innerText = randomMode ? "Random: ON" : "Random";
+  };
+  
 
 
   //sliders
@@ -106,6 +111,11 @@ function main() {
   canvas.onmousedown = click;
   //canvas.onmousemove = click;
   canvas.onmousemove = function(ev) {if(ev.buttons == 1) {click(ev)}};
+
+  canvas.onmouseup = function() {
+    g_prevMousePos = null;
+  };  
+
   // Specify the color for clearing <canvas>
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -123,18 +133,30 @@ var g_shapesList = [];
 function click(ev) {
   
   let [x,y] = convertCoordinatesEventToGL(ev);
-
+  
+  if (randomMode) {
+    g_selectedColor = [
+      Math.random(), // R
+      Math.random(), // G
+      Math.random(), // B
+      1.0            // Alpha
+    ];
+  }
+  
   // Store the coordinates to g_points array
   let point;
-  if (g_selectedType==POINT){
+  if (g_selectedType == POINT) {
     point = new Point();
-  } else{
+  } else if (g_selectedType == TRIANGLE) {
     point = new Triangle();
+  } else {
+    point = new Circle();
   }
 
-  point.position=[x, y];
-  point.color=g_selectedColor.slice();
-  point.size=g_selectedSize;
+  point.position = [x,y];
+  point.color = g_selectedColor.slice();
+  point.size = g_selectedSize;
+  point.segments = g_segment;
   g_shapesList.push(point);
   //g_colors.push(g_selectedColor);
   //g_colors.push(g_selectedColor.slice());
@@ -166,24 +188,25 @@ function convertCoordinatesEventToGL(ev){
   return([x,y]);
 }
 
-function renderAllShapes(){
-
+function renderAllShapes() {
+  // Check the time at the start of this function
   var startTime = performance.now();
-// Clear <canvas>
+
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   var len = g_shapesList.length;
+
   for(var i = 0; i < len; i++) {
     g_shapesList[i].render();
   }
 
   var duration = performance.now() - startTime;
-  sendTextToHtml("numdot: " + len + "ms: " + Math.floor(duration) + "fps: " + Math.floor(100000/duration))
+  sendTextToHTML("numdot: " + len + " ms: " + Math.floor(duration) + " fps: " + (Math.floor(1000/duration))/10, "numdot");
 }
 
-function sendTextToHtml(text, htmlID){
+function sendTextToHTML(text, htmlID) {
   var htmlElm = document.getElementById(htmlID);
-  if(!htmlElm) {
+  if (!htmlElm) {
     console.log("Failed to get " + htmlID + "from HTML");
     return;
   }
